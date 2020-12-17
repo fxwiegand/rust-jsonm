@@ -9,6 +9,7 @@ const TYPE_STRING: u32 = 2;
 use jsonm::packer::{PackOptions, Packer};
 use jsonm::unpacker::Unpacker;
 use serde_json::Value;
+use std::collections::HashMap;
 
 #[test]
 fn it_packs_small_integers_as_string_values() {
@@ -574,6 +575,45 @@ fn it_handles_large_messages_with_more_values_than_dictionary_size_that_contains
     }
     for i in 0..120 {
         input.push(i);
+    }
+
+    let to_pack = json!([null, input]);
+
+    let options = PackOptions::new();
+    let packed = packer.pack(&to_pack, &options).unwrap();
+
+    let unpacked: Value = unpacker.unpack(&packed).unwrap();
+    assert_eq!(unpacked, to_pack);
+
+    let packed = packer.pack(&to_pack, &options).unwrap();
+    let unpacked: Value = unpacker.unpack(&packed).unwrap();
+    assert_eq!(unpacked, to_pack);
+}
+
+#[test]
+fn it_handles_exceeded_max_dict_size() {
+    let mut packer = Packer::new();
+    let mut unpacker = Unpacker::new();
+
+    packer.set_max_dict_size(50);
+    unpacker.set_max_dict_size(50);
+
+    let mut input = HashMap::new();
+    let mut partial_input = Vec::new();
+    for i in 0..50 {
+        partial_input.push(i);
+    }
+    for i in 0..49 {
+        partial_input.push(i);
+    }
+    for i in 0..51 {
+        partial_input.push(i);
+    }
+    for i in 0..120 {
+        partial_input.push(i);
+    }
+    for i in 0..50 {
+        input.insert(i, partial_input.clone());
     }
 
     let to_pack = json!([null, input]);
